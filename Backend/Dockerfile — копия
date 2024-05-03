@@ -1,0 +1,25 @@
+# Stage  1: Build the application
+FROM maven:3.6.3-jdk-11-slim AS build
+WORKDIR /home/app
+COPY pom.xml ./
+COPY src ./src
+RUN mvn dependency:go-offline && \
+    mvn package -DskipTests
+
+# Stage  2: Create a custom JRE with jlink
+FROM maven:3.6.3-jdk-11-slim AS jrebuilder
+WORKDIR /home/app
+COPY --from=build /home/app/target/*.jar ./app.jar
+RUN jdeps --ignore-missing-deps \
+    --multi-release  11 --print-module-deps \
+    --class-path app.jar > jre-deps.info && \
+    jlink --verbose --compress  2 --strip-java-debug-attributes \
+    --no-header-files --no-man-pages --output custom-jre \
+    --add-modules $(cat jre-deps.info)
+
+# Stage  3: Final stage with the custom JRE
+FROM amazoncorretto:15
+COPY --from=jrebuilder /home/app/custom-jre /opt/jre
+COPY --from=build /home/app/target/*.jar /app.jar
+VOLUME /tmp
+ENTRYPOINT ["/opt/jre/bin/java","-jar","/app.jar"]
