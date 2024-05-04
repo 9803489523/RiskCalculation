@@ -383,7 +383,7 @@ onUpdated(() => {
     DiagramCVE(json.value.cveCount, json.value.countCveBduPairs, json.value.cveCountWithCapecLinked)
 })
 async function fetchMainPageInformation() {
-    const response = await $axios().get('/api/main/', {
+    const response = await $axios().get('/main/', {
         headers: {
             "ngrok-skip-browser-warning": "69420",
         },
